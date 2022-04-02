@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'user.apps.UserConfig',
     'foodgram.apps.FoodgramConfig',
+    'api.apps.ApiConfig',
 ]
 
 MIDDLEWARE = [

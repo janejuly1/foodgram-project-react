@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator
 from django.db import models
 
 from user.models import User
@@ -23,7 +24,22 @@ class Ingredient(models.Model):
 
 
 class Recipe(models.Model):
-    name = models.CharField(max_length=255, verbose_name='Название')
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='recipe_author')
+
+    name = models.CharField(max_length=200, verbose_name='Название')
+    image = models.ImageField(default='blank.jpg', verbose_name='Картинка')
+    text = models.TextField(verbose_name='Рецепт')
+    cooking_time = models.IntegerField(MinValueValidator(1))
+    tag = models.ManyToManyField(Tag)
+    ingredient = models.ManyToManyField(
+        Ingredient,
+        through='IngredientInRecipe',
+        related_name='recipe',
+        verbose_name='Ингридиент'
+    )
 
     class Meta:
         verbose_name = 'Рецепт'
