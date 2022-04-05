@@ -1,7 +1,11 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
-from foodgram.models import Ingredient, Recipe, Tag, Favourite
+from drf_extra_fields.fields import Base64ImageField
+
+from foodgram.models import (Ingredient, Recipe, Tag,
+                             Favourite, IngredientInRecipe,
+                             ShoppingCart)
 from user.models import User, Follower
 from rest_framework_simplejwt.serializers import \
     TokenObtainPairSerializer as BaseTokenObtainPairSerializer
@@ -38,6 +42,7 @@ class UserSerializer(serializers.ModelSerializer):
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
+        fields = '__all__'
 
 
 class RegistrationSerializer(serializers.Serializer):
@@ -65,35 +70,88 @@ class RegistrationSerializer(serializers.Serializer):
         return super().validate(attrs)
 
 
-class RecipeSerializer(serializers.ModelSerializer):
+class RecipeWriteSerializer(serializers.ModelSerializer):
+    tags = serializers.PrimaryKeyRelatedField(many=True, queryset=Tag.objects.all())
+    image = Base64ImageField()
+
     class Meta:
-        exclude = ('id',)
+        exclude = ['author']
         model = Recipe
+
+
+class RecipeReadSerializer(serializers.ModelSerializer):
+    tags = serializers.SerializerMethodField('_tags')
+    is_favorited = serializers.SerializerMethodField('_is_favorited')
+    is_in_shopping_cart = serializers.SerializerMethodField('_is_in_shopping_cart')
+
+    def _is_favorited(self, recipe):
+        if 'request' in self.context:
+            request = self.context['request']
+            if hasattr(request, 'user'):
+                current_user = request.user
+                if (current_user is not None
+                        and not current_user.is_anonymous
+                        and current_user.favourites.filter(
+                            recipe=recipe).exists()):
+                    return True
+
+        return False
+
+    def _is_in_shopping_cart(self, recipe):
+        if 'request' in self.context:
+            request = self.context['request']
+            if hasattr(request, 'user'):
+                current_user = request.user
+                if (current_user is not None
+                        and not current_user.is_anonymous
+                        and current_user.shopping_cart.filter(
+                            recipe=recipe).exists()):
+                    return True
+
+        return False
+
+    def _tags(self, recipe):
+        tags = []
+        for tag in recipe.tags.all():
+            tags.append({
+                'id': tag.id,
+                'name': tag.name,
+                'color': tag.color_code,
+                'slug': tag.id,
+            })
+
+        return tags
+
+    class Meta:
+        model = Recipe
+        fields = '__all__'
 
 
 class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingredient
-        fields = ['recipe', 'ingredient']
+        fields = '__all__'
 
 
 class IngredientInRecipeSerializer(serializers.ModelSerializer):
-    ingredient = IngredientSerializer(many=True)
-    # amount =
-
-    def create(self, validated_data):
-        return Ingredient.objects.create(**validated_data)
+    class Meta:
+        model = IngredientInRecipe
+        fields = '__all__'
 
 
 class ShoppingCartSerializer(serializers.Serializer):
-    pass
+    class Meta:
+        model = ShoppingCart
+        fields = '__all__'
 
 
 class FavouriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Favourite
+        fields = '__all__'
 
 
 class FollowerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Follower
+        fields = '__all__'

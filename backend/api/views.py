@@ -39,14 +39,33 @@ class TagViewSet(viewsets.ModelViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
+    serializer_class = RecipeReadSerializer
     permission_classes = (IsAuthorOrReadOnlyPermission,)
     pagination_class = LimitOffsetPagination
 
+    def get_serializer_class(self):
+        if self.request.method in ['POST', 'PATCH']:
+            return RecipeWriteSerializer
+
+        return RecipeReadSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+
+        recipe = get_object_or_404(Recipe, pk=serializer.data.get('id'))
+        read_serializer = RecipeReadSerializer(
+            recipe,
+            context=self.get_serializer_context()
+        )
+
+        return Response(read_serializer.data, status=status.HTTP_201_CREATED,
+                        headers=headers)
+
     def perform_create(self, serializer):
-        recipe_id = self.kwargs.get('recipe_id')
-        recipe = get_object_or_404(Recipe, id=recipe_id)
-        serializer.save(author=self.request.user, recipe=recipe)
+        serializer.save(author=self.request.user)
 
 
 class ShoppingCartViewSet(viewsets.ModelViewSet):

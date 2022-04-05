@@ -33,8 +33,8 @@ class Recipe(models.Model):
     image = models.ImageField(default='blank.jpg', verbose_name='Картинка')
     text = models.TextField(verbose_name='Рецепт')
     cooking_time = models.IntegerField(MinValueValidator(1))
-    tag = models.ManyToManyField(Tag)
-    ingredient = models.ManyToManyField(
+    tags = models.ManyToManyField(Tag)
+    ingredients = models.ManyToManyField(
         Ingredient,
         through='IngredientInRecipe',
         related_name='recipe',
@@ -49,12 +49,10 @@ class Recipe(models.Model):
 class IngredientInRecipe(models.Model):
     recipe = models.ForeignKey(
         Recipe,
-        on_delete=models.CASCADE,
-        related_name='ingredients')
+        on_delete=models.CASCADE)
     ingredient = models.ForeignKey(
         Ingredient,
-        on_delete=models.CASCADE,
-        related_name='recipes')
+        on_delete=models.CASCADE)
     amount = models.FloatField()
 
     class Meta:
