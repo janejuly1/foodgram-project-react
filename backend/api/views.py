@@ -2,11 +2,13 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.pagination import LimitOffsetPagination
-from rest_framework.generics import GenericAPIView
+from rest_framework.generics import GenericAPIView, get_object_or_404
+from rest_framework import filters
 
 from .serializers import *
 from user.models import *
 from foodgram.models import *
+from user.permissions import IsAuthorOrReadOnlyPermission
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -20,37 +22,73 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class TagViewSet(viewsets.ViewSet):
+class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    pass
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+    lookup_field = 'slug'
+    pagination_class = LimitOffsetPagination
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def update(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
-class RecipeViewSet(viewsets.ViewSet):
+class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
-    pass
+    permission_classes = (IsAuthorOrReadOnlyPermission,)
+    pagination_class = LimitOffsetPagination
+
+    def perform_create(self, serializer):
+        recipe_id = self.kwargs.get('recipe_id')
+        recipe = get_object_or_404(Recipe, id=recipe_id)
+        serializer.save(author=self.request.user, recipe=recipe)
 
 
-class ShoppingCartViewSet(viewsets.ViewSet):
+class ShoppingCartViewSet(viewsets.ModelViewSet):
     queryset = IngredientInRecipe.objects.all()
     serializer_class = ShoppingCartSerializer
-    pass
+    permission_classes = (IsAuthorOrReadOnlyPermission,)
+
+    def get_queryset(self):
+        recipe_id = self.kwargs.get('recipe_id')
+        recipe = get_object_or_404(Recipe, id=recipe_id)
+        return ShoppingCart.objects.filter(recipe=recipe)
+
+    def perform_create(self, serializer):
+        recipe_id = self.kwargs.get('recipe_id')
+        recipe = get_object_or_404(Recipe, id=recipe_id)
+        serializer.save(user=self.request.user, recipe=recipe)
 
 
-class FavoriteViewSet(viewsets.ViewSet):
+class FavoriteViewSet(viewsets.ModelViewSet):
     queryset = Favourite.objects.all()
     serializer_class = FavouriteSerializer
-    pass
+    permission_classes = (IsAuthorOrReadOnlyPermission, )
+    pagination_class = LimitOffsetPagination
+
+    def get_queryset(self):
+        recipe_id = self.kwargs.get('recipe_id')
+        recipe = get_object_or_404(Recipe, id=recipe_id)
+        return Favourite.objects.filter(recipe=recipe)
+
+    def perform_create(self, serializer):
+        recipe_id = self.kwargs.get('recipe_id')
+        recipe = get_object_or_404(Recipe, id=recipe_id)
+        serializer.save(user=self.request.user, recipe=recipe)
 
 
-class SubscriptionViewSet(viewsets.ViewSet):
+class SubscriptionViewSet(viewsets.ModelViewSet):
     queryset = Follower.objects.all()
     serializer_class = FollowerSerializer
     pass
 
 
-class IngredientsViewSet(viewsets.ViewSet):
+class IngredientsViewSet(viewsets.ModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
 

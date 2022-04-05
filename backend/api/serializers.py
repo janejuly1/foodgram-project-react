@@ -3,6 +3,12 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
 from foodgram.models import Ingredient, Recipe, Tag, Favourite
 from user.models import User, Follower
+from rest_framework_simplejwt.serializers import \
+    TokenObtainPairSerializer as BaseTokenObtainPairSerializer
+
+
+class TokenObtainPairSerializer(BaseTokenObtainPairSerializer):
+    username_field = 'email'
 
 
 class UserSerializer(serializers.ModelSerializer):
