@@ -3,8 +3,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.generics import GenericAPIView, get_object_or_404
-from rest_framework import filters
+from django_filters import rest_framework as filters
 
+from .filters import RecipeFilter
 from .serializers import *
 from user.models import *
 from foodgram.models import *
@@ -25,10 +26,6 @@ class UserViewSet(viewsets.ModelViewSet):
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
-    lookup_field = 'slug'
-    pagination_class = LimitOffsetPagination
 
     def retrieve(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -42,6 +39,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
     serializer_class = RecipeReadSerializer
     permission_classes = (IsAuthorOrReadOnlyPermission,)
     pagination_class = LimitOffsetPagination
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = RecipeFilter
 
     def get_serializer_class(self):
         if self.request.method in ['POST', 'PATCH']:
@@ -63,6 +62,22 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         return Response(read_serializer.data, status=status.HTTP_201_CREATED,
                         headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data,
+                                         partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        recipe = get_object_or_404(Recipe, pk=serializer.data.get('id'))
+        read_serializer = RecipeReadSerializer(
+            recipe,
+            context=self.get_serializer_context()
+        )
+
+        return Response(read_serializer.data)
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
