@@ -52,7 +52,7 @@ class RegistrationSerializer(serializers.Serializer):
         validators=[UniqueValidator(queryset=User.objects.all())])
 
     username = serializers.RegexField(
-        r'^[\w.@+-]+\z',
+        r'^[\w.@+-]+',
         required=True,
         max_length=150,
         validators=[UniqueValidator(queryset=User.objects.all())])

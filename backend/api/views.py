@@ -1,12 +1,12 @@
 import csv
 
-from rest_framework import viewsets, status, views
+from rest_framework import viewsets, status, views, mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.http import Http404
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.generics import get_object_or_404
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters import rest_framework as filters
 
 from .filters import RecipeFilter
@@ -15,21 +15,40 @@ from user.models import *
 from foodgram.models import *
 from user.permissions import (IsAuthorOrReadOnlyPermission,
                               IsAuthorPermission, IsAdminOrReadOnly)
-# from ..user.models import *
-# from ..foodgram.models import *
-# from ..user.permissions import (IsAuthorOrReadOnlyPermission,
-#                               IsAuthorPermission, IsAdminOrReadOnly)
 
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(mixins.RetrieveModelMixin,
+                  mixins.ListModelMixin,
+                  mixins.CreateModelMixin,
+                  viewsets.GenericViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     pagination_class = LimitOffsetPagination
+    permission_classes = [AllowAny]
 
     @action(detail=False, url_path='me')
     def me(self, request, *args, **kwargs):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        serializer = RegistrationSerializer(data=request.data)
+
+        serializer.is_valid(raise_exception=True)
+
+        data = serializer.validated_data
+
+        user = User.objects.create_user(
+            email=data['email'],
+            username=data['username'],
+            first_name=data['first_name'],
+            last_name=data['last_name'],
+            password=data['password'],
+        )
+        user.save()
+
+        user_serializer = UserSerializer(user)
+        return Response(user_serializer.data, status=status.HTTP_200_OK)
 
 
 class TagViewSet(viewsets.ModelViewSet):
@@ -203,12 +222,16 @@ class SubscriptionView(views.APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class IngredientsViewSet(viewsets.ModelViewSet):
+class IngredientsViewSet(mixins.RetrieveModelMixin,
+                         mixins.ListModelMixin,
+                         viewsets.GenericViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
 
 
 class RegistrationView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request, *args, **kwargs):
         serializer = RegistrationSerializer(data=request.data)
 
@@ -216,7 +239,7 @@ class RegistrationView(views.APIView):
 
         data = serializer.validated_data
 
-        user = User(
+        user = User.objects.create_user(
             email=data['email'],
             username=data['username'],
             first_name=data['first_name'],

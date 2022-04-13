@@ -43,3 +43,8 @@ class IsAuthorPermission(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         return request.user.is_authenticated and obj.author == request.user
+
+
+class IsNotAuthenticated(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return not bool(request.user and request.user.is_authenticated)

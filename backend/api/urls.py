@@ -36,5 +36,9 @@ urlpatterns = [
         r'recipes/<int:id>/favorite/',
          FavoriteView.as_view(),
          name='favorite'),
+    # path(
+    #     r'users/',
+    #      RegistrationView.as_view(),
+    #      name='registration'),
     path('', include(router.urls)),
 ]
