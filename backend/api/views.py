@@ -147,21 +147,38 @@ class ShoppingCartView(views.APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class FavoriteViewSet(viewsets.ModelViewSet):
-    queryset = Favourite.objects.all()
-    serializer_class = FavouriteSerializer
-    permission_classes = (IsAuthorOrReadOnlyPermission, )
-    pagination_class = LimitOffsetPagination
+class FavoriteView(views.APIView):
+    permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        recipe_id = self.kwargs.get('recipe_id')
-        recipe = get_object_or_404(Recipe, id=recipe_id)
-        return Favourite.objects.filter(recipe=recipe)
+    def post(self, request, id):
+        try:
+            recipe = get_object_or_404(Recipe, id=id)
+        except Http404:
+            return Response({"error": "Рецепт не найден"},
+                            status=status.HTTP_400_BAD_REQUEST)
 
-    def perform_create(self, serializer):
-        recipe_id = self.kwargs.get('recipe_id')
-        recipe = get_object_or_404(Recipe, id=recipe_id)
-        serializer.save(user=self.request.user, recipe=recipe)
+        _, created = Favourite.objects.get_or_create(
+            user=request.user, recipe=recipe)
+        if not created:
+            return Response({"error": "Рецепт уже в списке избранного"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = RecipeMinifiedSerializer(recipe)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, id):
+        try:
+            recipe = get_object_or_404(Recipe, id=id)
+            recipe_in_fav = get_object_or_404(
+                Favourite, user=request.user, recipe=recipe)
+        except Http404:
+            return Response({"error": "Рецепт не найден"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        Favourite.delete(recipe_in_fav)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SubscriptionView(views.APIView):

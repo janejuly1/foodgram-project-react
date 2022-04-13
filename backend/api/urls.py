@@ -9,7 +9,6 @@ router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'tags', TagViewSet, basename='tag')
 router.register(r'recipes', RecipeViewSet, basename='recipe')
-router.register(r'favorites', FavoriteViewSet, basename='favorite')
 router.register(r'ingredients', IngredientsViewSet, basename='ingredient')
 
 urlpatterns = [
@@ -33,5 +32,9 @@ urlpatterns = [
         ShoppingCartView.as_view(),
         name='shopping_cart',
     ),
+    path(
+        r'recipes/<int:id>/favorite/',
+         FavoriteView.as_view(),
+         name='favorite'),
     path('', include(router.urls)),
 ]
