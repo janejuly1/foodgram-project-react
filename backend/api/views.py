@@ -1,15 +1,24 @@
-from rest_framework import viewsets, status
+import csv
+
+from rest_framework import viewsets, status, views
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.http import Http404
 from rest_framework.pagination import LimitOffsetPagination
-from rest_framework.generics import GenericAPIView, get_object_or_404
+from rest_framework.generics import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
 from django_filters import rest_framework as filters
 
 from .filters import RecipeFilter
 from .serializers import *
 from user.models import *
 from foodgram.models import *
-from user.permissions import IsAuthorOrReadOnlyPermission
+from user.permissions import (IsAuthorOrReadOnlyPermission,
+                              IsAuthorPermission, IsAdminOrReadOnly)
+# from ..user.models import *
+# from ..foodgram.models import *
+# from ..user.permissions import (IsAuthorOrReadOnlyPermission,
+#                               IsAuthorPermission, IsAdminOrReadOnly)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -26,6 +35,7 @@ class UserViewSet(viewsets.ModelViewSet):
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    permission_classes = (IsAdminOrReadOnly,)
 
     def retrieve(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -83,20 +93,58 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user)
 
 
-class ShoppingCartViewSet(viewsets.ModelViewSet):
-    queryset = IngredientInRecipe.objects.all()
-    serializer_class = ShoppingCartSerializer
-    permission_classes = (IsAuthorOrReadOnlyPermission,)
+class ShoppingCartView(views.APIView):
+    permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        recipe_id = self.kwargs.get('recipe_id')
-        recipe = get_object_or_404(Recipe, id=recipe_id)
-        return ShoppingCart.objects.filter(recipe=recipe)
+    def get(self, request):
+        ingredients = {}
+        for recipe in Recipe.objects.filter(
+                shopping_cart__user=request.user).all():
+            for ingredient in recipe.ingredients.all():
+                if ingredient.ingredient.id not in ingredients:
+                    ingredients[ingredient.ingredient.id] = [
+                        ingredient.ingredient, ingredient.amount]
+                else:
+                    ingredients[ingredient.ingredient.id][1] += ingredient.amount
 
-    def perform_create(self, serializer):
-        recipe_id = self.kwargs.get('recipe_id')
-        recipe = get_object_or_404(Recipe, id=recipe_id)
-        serializer.save(user=self.request.user, recipe=recipe)
+        response = Response(content_type='text/plain; charset=utf8')
+        response['Content-Disposition'] = 'attachment; filename="shopping list.txt"'
+
+        writer = csv.writer(response)
+        for ingredient in ingredients.values():
+            writer.writerow(["%s %s %d".format(ingredient[0].name, ingredient[0].unit, ingredient[1])])
+
+        return response
+
+    def post(self, request, id):
+        try:
+            recipe = get_object_or_404(Recipe, id=id)
+        except Http404:
+            return Response({"error": "Рецепт не найден"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        _, created = ShoppingCart.objects.get_or_create(
+            user=request.user, recipe=recipe)
+        if not created:
+            return Response({"error": "Рецепт уже в списке покупок"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = RecipeMinifiedSerializer(recipe)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, id):
+        try:
+            recipe = get_object_or_404(Recipe, id=id)
+            recipe_in_cart = get_object_or_404(
+                ShoppingCart, user=request.user, recipe=recipe)
+        except Http404:
+            return Response({"error": "Рецепт не найден"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        ShoppingCart.delete(recipe_in_cart)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class FavoriteViewSet(viewsets.ModelViewSet):
@@ -116,10 +164,26 @@ class FavoriteViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user, recipe=recipe)
 
 
-class SubscriptionViewSet(viewsets.ModelViewSet):
-    queryset = Follower.objects.all()
-    serializer_class = FollowerSerializer
-    pass
+class SubscriptionView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def post(self, request, user_id):
+        author = get_object_or_404(User, id=user_id)
+        if request.user == author:
+            return Response({"error": "Нельзя подписаться на самого себя"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        _, created = Follower.objects.get_or_create(user=request.user, author=author)
+        if not created:
+            return Response({"error": "Уже подписан"}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = AuthorWithRecipesSerializer(
+            author, context={'request': self.request})
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class IngredientsViewSet(viewsets.ModelViewSet):
@@ -127,7 +191,7 @@ class IngredientsViewSet(viewsets.ModelViewSet):
     serializer_class = IngredientSerializer
 
 
-class RegistrationView(GenericAPIView):
+class RegistrationView(views.APIView):
     def post(self, request, *args, **kwargs):
         serializer = RegistrationSerializer(data=request.data)
 

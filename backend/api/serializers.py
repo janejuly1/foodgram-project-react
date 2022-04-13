@@ -79,6 +79,41 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         model = Recipe
 
 
+class AuthorWithRecipesSerializer(UserSerializer):
+    DEFAULT_RECIPES_LIMIT = 3
+
+    recipes = serializers.SerializerMethodField('_recipes')
+    recipes_count = serializers.SerializerMethodField('_recipes_count')
+
+    def _recipes(self, user):
+        limit = self.DEFAULT_RECIPES_LIMIT
+        if 'request' in self.context:
+            request = self.context['request']
+            if 'recipes_limit' in request.GET:
+                limit = int(request.GET['recipes_limit'])
+
+        recipes = []
+        for recipe in user.recipes.all()[:limit]:
+            serializer = RecipeMinifiedSerializer(recipe)
+            recipes.append(serializer.data)
+
+        return recipes
+
+    def _recipes_count(self, user):
+        return user.recipes.count()
+
+    class Meta:
+        model = User
+        fields = ['email', 'id', 'username', 'first_name', 'last_name',
+                  'is_subscribed', 'recipes', 'recipes_count']
+
+
+class RecipeMinifiedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipe
+        fields = ['id', 'name', 'image', 'cooking_time']
+
+
 class RecipeReadSerializer(serializers.ModelSerializer):
     tags = serializers.SerializerMethodField('_tags')
     is_favorited = serializers.SerializerMethodField('_is_favorited')

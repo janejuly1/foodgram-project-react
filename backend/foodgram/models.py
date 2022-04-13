@@ -12,6 +12,12 @@ class Tag(models.Model):
     class Meta:
         verbose_name = 'Тэг'
         verbose_name_plural = 'Тэги'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['name', 'color_code', 'slug'],
+                name='unique_tag'
+            )
+        ]
 
 
 class Ingredient(models.Model):
@@ -27,7 +33,7 @@ class Recipe(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='recipe_author')
+        related_name='recipes')
 
     name = models.CharField(max_length=200, verbose_name='Название')
     image = models.ImageField(default='blank.jpg', verbose_name='Картинка')
@@ -40,10 +46,14 @@ class Recipe(models.Model):
         related_name='recipe',
         verbose_name='Ингридиент'
     )
+    pub_date = models.DateTimeField(
+        auto_now_add=True, db_index=True, verbose_name='Дата добавления'
+    )
 
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
+        ordering = ['-pub_date']
 
 
 class IngredientInRecipe(models.Model):
