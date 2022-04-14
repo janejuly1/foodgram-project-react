@@ -1,6 +1,8 @@
 from rest_framework import permissions
-from .models import User, Follower
-from foodgram.models import Recipe, Favourite, Tag
+
+from foodgram.models import Favourite, Recipe, Tag
+
+from .models import Follower, User
 
 
 class IsAuthorOrReadOnlyPermission(permissions.BasePermission):

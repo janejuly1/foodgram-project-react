@@ -1,14 +1,13 @@
+from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
-from drf_extra_fields.fields import Base64ImageField
-
-from foodgram.models import (Ingredient, Recipe, Tag,
-                             Favourite, IngredientInRecipe,
-                             ShoppingCart)
-from user.models import User, Follower
 from rest_framework_simplejwt.serializers import \
     TokenObtainPairSerializer as BaseTokenObtainPairSerializer
+
+from foodgram.models import (Favourite, Ingredient, IngredientInRecipe, Recipe,
+                             ShoppingCart, Tag)
+from user.models import Follower, User
 
 
 class TokenObtainPairSerializer(BaseTokenObtainPairSerializer):

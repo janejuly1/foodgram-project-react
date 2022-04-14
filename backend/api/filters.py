@@ -1,8 +1,7 @@
 import django_filters as df
 from django.db.models import Q
 
-
-from foodgram.models import Recipe
+from foodgram.models import Recipe, Ingredient
 
 
 class RecipeFilter(df.FilterSet):
@@ -35,3 +34,11 @@ class RecipeFilter(df.FilterSet):
     class Meta:
         model = Recipe
         fields = ['tags', 'author']
+
+
+class IngredientFilter(df.FilterSet):
+    name = df.CharFilter(field_name='name', lookup_expr='contains')
+
+    class Meta:
+        model = Ingredient
+        fields = ['name']

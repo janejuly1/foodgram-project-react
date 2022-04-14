@@ -1,21 +1,20 @@
 import csv
 
-from rest_framework import viewsets, status, views, mixins
-from rest_framework.decorators import action
-from rest_framework.response import Response
 from django.http import Http404
-from rest_framework.pagination import LimitOffsetPagination
-from rest_framework.generics import get_object_or_404
-from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters import rest_framework as filters
-from django.contrib.auth import authenticate
+from rest_framework import mixins, status, views, viewsets
+from rest_framework.decorators import action
+from rest_framework.generics import get_object_or_404
+from rest_framework.pagination import LimitOffsetPagination
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 
-from .filters import RecipeFilter
-from .serializers import *
-from user.models import *
 from foodgram.models import *
-from user.permissions import (IsAuthorOrReadOnlyPermission,
-                              IsAdminOrReadOnly)
+from user.models import *
+from user.permissions import IsAdminOrReadOnly, IsAuthorOrReadOnlyPermission
+
+from .filters import RecipeFilter, IngredientFilter
+from .serializers import *
 
 
 class UserViewSet(mixins.RetrieveModelMixin,
@@ -228,6 +227,8 @@ class IngredientsViewSet(mixins.RetrieveModelMixin,
                          viewsets.GenericViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = IngredientFilter
 
 
 class RegistrationView(views.APIView):
