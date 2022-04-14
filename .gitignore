@@ -135,3 +135,5 @@ dmypy.json
 !/backend/media/.gitkeep
 /backend/static
 !/backend/static/.gitkeep
+
+.DS_Store
