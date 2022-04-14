@@ -1,5 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView)
 
 from .views import *
 
@@ -35,10 +37,14 @@ urlpatterns = [
     path(
         r'recipes/<int:id>/favorite/',
          FavoriteView.as_view(),
-         name='favorite'),
-    # path(
-    #     r'users/',
-    #      RegistrationView.as_view(),
-    #      name='registration'),
+         name='favorite'
+    ),
+    path(r'users/set_password/',
+         ChangePasswordView.as_view(),
+         name='change_password'
+    ),
+    path(r'auth/token/login/',
+         TokenObtainPairView.as_view(),
+         name='token_obtain_pair'),
     path('', include(router.urls)),
 ]

@@ -8,13 +8,14 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters import rest_framework as filters
+from django.contrib.auth import authenticate
 
 from .filters import RecipeFilter
 from .serializers import *
 from user.models import *
 from foodgram.models import *
 from user.permissions import (IsAuthorOrReadOnlyPermission,
-                              IsAuthorPermission, IsAdminOrReadOnly)
+                              IsAdminOrReadOnly)
 
 
 class UserViewSet(mixins.RetrieveModelMixin,
@@ -250,3 +251,20 @@ class RegistrationView(views.APIView):
 
         user_serializer = UserSerializer(user)
         return Response(user_serializer.data, status=status.HTTP_200_OK)
+
+
+class ChangePasswordView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        if not user.check_password(serializer.data['current_password']):
+            return Response(data={"current_password": ["Неверный пароль"]},
+                            status=status.HTTP_400_BAD_REQUEST)
+        else:
+            user.set_password(serializer.data['new_password'])
+            user.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)

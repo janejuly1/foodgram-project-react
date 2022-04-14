@@ -168,25 +168,6 @@ class IngredientSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class IngredientInRecipeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = IngredientInRecipe
-        fields = '__all__'
-
-
-class ShoppingCartSerializer(serializers.Serializer):
-    class Meta:
-        model = ShoppingCart
-        fields = '__all__'
-
-
-class FavouriteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Favourite
-        fields = '__all__'
-
-
-class FollowerSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Follower
-        fields = '__all__'
+class ChangePasswordSerializer(serializers.Serializer):
+    new_password = serializers.CharField()
+    current_password = serializers.CharField()
