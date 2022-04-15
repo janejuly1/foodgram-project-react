@@ -9,7 +9,7 @@ services:
       - .env
 
   django:
-    image: foodgram
+    image: janejuly1/foodgram
     env_file:
       - .env
     volumes:

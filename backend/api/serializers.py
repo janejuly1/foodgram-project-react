@@ -13,6 +13,12 @@ from user.models import Follower, User
 class TokenObtainPairSerializer(BaseTokenObtainPairSerializer):
     username_field = 'email'
 
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data.pop('refresh')
+
+        return data
+
 
 class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField('_is_subscribed')
