@@ -42,8 +42,5 @@ urlpatterns = [
          ChangePasswordView.as_view(),
          name='change_password'
     ),
-    path(r'auth/token/login/',
-         TokenObtainPairView.as_view(),
-         name='token_obtain_pair'),
     path('', include(router.urls)),
 ]
