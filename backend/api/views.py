@@ -13,7 +13,7 @@ from foodgram.models import *
 from user.models import *
 from user.permissions import IsAdminOrReadOnly, IsAuthorOrReadOnlyPermission
 
-from .filters import RecipeFilter, IngredientFilter
+from .filters import IngredientFilter, RecipeFilter
 from .serializers import *
 
 

@@ -1,7 +1,7 @@
 import django_filters as df
 from django.db.models import Q
 
-from foodgram.models import Recipe, Ingredient
+from foodgram.models import Ingredient, Recipe
 
 
 class RecipeFilter(df.FilterSet):
