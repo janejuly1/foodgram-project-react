@@ -2,16 +2,11 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
-from rest_framework_simplejwt.serializers import (
-    TokenObtainPairSerializer as BaseTokenObtainPairSerializer)
+from rest_framework_simplejwt.serializers import \
+    TokenObtainPairSerializer as BaseTokenObtainPairSerializer
 
-from foodgram.models import (Favourite,
-                             Ingredient,
-                             IngredientInRecipe,
-                             Recipe,
-                             ShoppingCart,
-                             Tag)
-from user.models import Follower, User
+from foodgram.models import Ingredient, IngredientInRecipe, Recipe, Tag
+from user.models import User
 
 
 class TokenObtainPairSerializer(BaseTokenObtainPairSerializer):
@@ -95,8 +90,10 @@ class IngredientInRecipeWriteSerializer(serializers.ModelSerializer):
 
 
 class RecipeWriteSerializer(serializers.ModelSerializer):
-    tags = serializers.PrimaryKeyRelatedField(many=True, queryset=Tag.objects.all())
-    ingredients = IngredientInRecipeWriteSerializer(source="ingredientinrecipe_set",many=True)
+    tags = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Tag.objects.all())
+    ingredients = IngredientInRecipeWriteSerializer(
+        source="ingredientinrecipe_set", many=True)
     image = Base64ImageField()
 
     def create(self, validated_data):
@@ -150,7 +147,6 @@ class AuthorWithRecipesSerializer(UserSerializer):
             if 'recipes_limit' in request.GET:
                 limit = int(request.GET['recipes_limit'])
 
-
         return RecipeMinifiedSerializer(
             user.recipes.all()[:limit],
             many=True).data
@@ -182,9 +178,11 @@ class IngredientInRecipeReadSerializer(serializers.ModelSerializer):
 
 class RecipeReadSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
-    ingredients = IngredientInRecipeReadSerializer(many=True, source='ingredientinrecipe_set')
+    ingredients = IngredientInRecipeReadSerializer(
+        many=True, source='ingredientinrecipe_set')
     is_favorited = serializers.SerializerMethodField('_is_favorited')
-    is_in_shopping_cart = serializers.SerializerMethodField('_is_in_shopping_cart')
+    is_in_shopping_cart = serializers.SerializerMethodField(
+        '_is_in_shopping_cart')
 
     def _is_favorited(self, recipe):
         current_user = get_user_from_serializer_context(self)

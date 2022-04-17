@@ -9,20 +9,16 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from foodgram.models import Favourite, Ingredient, Recipe, ShoppingCart, Tag
+from user.models import Follower, User
 from user.permissions import IsAdminOrReadOnly, IsAuthorOrReadOnlyPermission
-from .filters import IngredientFilter, RecipeFilter
-from foodgram.models import Tag, Recipe, ShoppingCart, Favourite, Ingredient
-from user.models import User, Follower
 
-from .serializers import (UserSerializer,
-                          RegistrationSerializer,
-                          TagSerializer,
-                          RecipeReadSerializer,
-                          RecipeWriteSerializer,
-                          RecipeMinifiedSerializer,
-                          AuthorWithRecipesSerializer,
-                          IngredientSerializer,
-                          ChangePasswordSerializer)
+from .filters import IngredientFilter, RecipeFilter
+from .serializers import (AuthorWithRecipesSerializer,
+                          ChangePasswordSerializer, IngredientSerializer,
+                          RecipeMinifiedSerializer, RecipeReadSerializer,
+                          RecipeWriteSerializer, RegistrationSerializer,
+                          TagSerializer, UserSerializer)
 
 
 class UserViewSet(mixins.RetrieveModelMixin,
@@ -128,18 +124,23 @@ class ShoppingCartView(views.APIView):
         for recipe in Recipe.objects.filter(
                 shopping_cart__user=request.user).all():
             for ingredient in recipe.ingredients.all():
-                if ingredient.ingredient.id not in ingredients:
-                    ingredients[ingredient.ingredient.id] = [
-                        ingredient.ingredient, ingredient.amount]
+                ingr_id = ingredient.ingredient.id
+                if ingr_id not in ingredients:
+                    ingredients[ingr_id] = [ingredient.ingredient,
+                                            ingredient.amount]
                 else:
-                    ingredients[ingredient.ingredient.id][1] += ingredient.amount
+                    ingredients[ingr_id][1] += ingredient.amount
 
         response = Response(content_type='text/plain; charset=utf8')
-        response['Content-Disposition'] = 'attachment; filename="shopping list.txt"'
+        response['Content-Disposition'] = \
+            'attachment; filename="shopping list.txt"'
 
         writer = csv.writer(response)
         for ingredient in ingredients.values():
-            writer.writerow(["%s %s %d".format(ingredient[0].name, ingredient[0].unit, ingredient[1])])
+            writer.writerow(["{} {} {}".format
+                             (ingredient[0].name,
+                              ingredient[0].unit,
+                              ingredient[1])])
 
         return response
 
@@ -220,9 +221,11 @@ class SubscriptionView(views.APIView):
             return Response({"error": "Нельзя подписаться на самого себя"},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        _, created = Follower.objects.get_or_create(user=request.user, author=author)
+        _, created = Follower.objects.get_or_create(user=request.user,
+                                                    author=author)
         if not created:
-            return Response({"error": "Уже подписан"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Уже подписан"},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         serializer = AuthorWithRecipesSerializer(
             author, context={'request': self.request})

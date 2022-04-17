@@ -1,7 +1,9 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import *
+from .views import (ChangePasswordView, FavoriteView, IngredientsViewSet,
+                    RecipeViewSet, ShoppingCartView, SubscriptionView,
+                    TagViewSet, UserViewSet)
 
 app_name = 'api'
 
@@ -34,12 +36,12 @@ urlpatterns = [
     ),
     path(
         r'recipes/<int:id>/favorite/',
-         FavoriteView.as_view(),
-         name='favorite'
+        FavoriteView.as_view(),
+        name='favorite'
     ),
     path(r'users/set_password/',
          ChangePasswordView.as_view(),
          name='change_password'
-    ),
+         ),
     path('', include(router.urls)),
 ]

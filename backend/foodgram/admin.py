@@ -33,6 +33,7 @@ class IngredientAdmin(admin.ModelAdmin):
     )
     list_filter = ('name',)
 
+
 class TagAdmin(admin.ModelAdmin):
     list_display = (
         'name',
@@ -44,8 +45,7 @@ class TagAdmin(admin.ModelAdmin):
         'slug',
     )
 
+
 admin.site.register(Recipe, RecipeAdmin)
-# admin.site.register(Recipe)
 admin.site.register(Ingredient, IngredientAdmin)
-# admin.site.register(Ingredient)
 admin.site.register(Tag, TagAdmin)

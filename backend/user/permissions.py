@@ -1,6 +1,6 @@
 from rest_framework import permissions
 
-from foodgram.models import Favourite, Recipe, Tag
+from foodgram.models import Favourite, Recipe
 
 from .models import Follower
 
