@@ -45,9 +45,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class TagSerializer(serializers.ModelSerializer):
+    color = serializers.CharField(source='color_code')
+
     class Meta:
         model = Tag
-        fields = '__all__'
+        fields = ['id', 'name', 'color', 'slug']
 
 
 class RegistrationSerializer(serializers.Serializer):
@@ -75,9 +77,40 @@ class RegistrationSerializer(serializers.Serializer):
         return super().validate(attrs)
 
 
+class CustomField(serializers.Field):
+    def to_representation(self, value):
+        return value
+
+    def to_internal_value(self, data):
+        return {self.field_name: data}
+
+
+class IngredientInRecipeWriteSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='ingredient.id')
+
+    class Meta:
+        model = IngredientInRecipe
+        fields = ['id', 'amount']
+
+
 class RecipeWriteSerializer(serializers.ModelSerializer):
     tags = serializers.PrimaryKeyRelatedField(many=True, queryset=Tag.objects.all())
+    ingredients = IngredientInRecipeWriteSerializer(source="ingredientinrecipe_set",many=True)
     image = Base64ImageField()
+
+    def create(self, validated_data):
+        ingredients = validated_data.pop('ingredientinrecipe_set')
+        recipe = super().create(validated_data)
+        for ingredient in ingredients:
+            IngredientInRecipe.objects.get_or_create(
+                ingredient_id=ingredient['ingredient']['id'],
+                amount=ingredient['amount'],
+                recipe=recipe)
+
+        return recipe
+
+    def save(self, **kwargs):
+        super().save(**kwargs)
 
     class Meta:
         exclude = ['author']
@@ -119,8 +152,19 @@ class RecipeMinifiedSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'image', 'cooking_time']
 
 
+class IngredientInRecipeReadSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='ingredient.id')
+    name = serializers.CharField(source='ingredient.name')
+    measurement_unit = serializers.CharField(source='ingredient.unit')
+
+    class Meta:
+        model = IngredientInRecipe
+        fields = ['id', 'name', 'measurement_unit', 'amount']
+
+
 class RecipeReadSerializer(serializers.ModelSerializer):
-    tags = serializers.SerializerMethodField('_tags')
+    tags = TagSerializer(many=True)
+    ingredients = IngredientInRecipeReadSerializer(many=True, source='ingredientinrecipe_set')
     is_favorited = serializers.SerializerMethodField('_is_favorited')
     is_in_shopping_cart = serializers.SerializerMethodField('_is_in_shopping_cart')
 
