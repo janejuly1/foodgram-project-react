@@ -31,15 +31,12 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
 
     def _is_subscribed(self, user):
-        if 'request' in self.context:
-            request = self.context['request']
-            if hasattr(request, 'user'):
-                current_user = request.user
-                if (current_user is not None
-                        and not current_user.is_anonymous
-                        and current_user.following.filter(
-                            author=user).exists()):
-                    return True
+        current_user = get_user_from_serializer_context(self)
+        if (current_user is not None
+                and not current_user.is_anonymous
+                and current_user.following.filter(
+                    author=user).exists()):
+            return True
 
         return False
 
@@ -109,8 +106,16 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
         return recipe
 
-    def save(self, **kwargs):
-        super().save(**kwargs)
+    def update(self, instance, validated_data):
+        ingredients = validated_data.pop('ingredientinrecipe_set')
+        recipe = super().create(validated_data)
+        for ingredient in ingredients:
+            IngredientInRecipe.objects.get_or_create(
+                ingredient_id=ingredient['ingredient']['id'],
+                amount=ingredient['amount'],
+                recipe=recipe)
+
+        return recipe
 
     class Meta:
         exclude = ['author']
@@ -169,42 +174,24 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     is_in_shopping_cart = serializers.SerializerMethodField('_is_in_shopping_cart')
 
     def _is_favorited(self, recipe):
-        if 'request' in self.context:
-            request = self.context['request']
-            if hasattr(request, 'user'):
-                current_user = request.user
-                if (current_user is not None
-                        and not current_user.is_anonymous
-                        and current_user.favourites.filter(
-                            recipe=recipe).exists()):
-                    return True
+        current_user = get_user_from_serializer_context(self)
+        if (current_user is not None
+                and not current_user.is_anonymous
+                and current_user.favourites.filter(
+                    recipe=recipe).exists()):
+            return True
 
         return False
 
     def _is_in_shopping_cart(self, recipe):
-        if 'request' in self.context:
-            request = self.context['request']
-            if hasattr(request, 'user'):
-                current_user = request.user
-                if (current_user is not None
-                        and not current_user.is_anonymous
-                        and current_user.shopping_cart.filter(
-                            recipe=recipe).exists()):
-                    return True
+        current_user = get_user_from_serializer_context(self)
+        if (current_user is not None
+                and not current_user.is_anonymous
+                and current_user.shopping_cart.filter(
+                    recipe=recipe).exists()):
+            return True
 
         return False
-
-    def _tags(self, recipe):
-        tags = []
-        for tag in recipe.tags.all():
-            tags.append({
-                'id': tag.id,
-                'name': tag.name,
-                'color': tag.color_code,
-                'slug': tag.id,
-            })
-
-        return tags
 
     class Meta:
         model = Recipe
@@ -220,3 +207,12 @@ class IngredientSerializer(serializers.ModelSerializer):
 class ChangePasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField()
     current_password = serializers.CharField()
+
+
+def get_user_from_serializer_context(serializer):
+    if 'request' in serializer.context:
+        request = serializer.context['request']
+        if hasattr(request, 'user'):
+            return request.user
+
+    return None
