@@ -2,11 +2,15 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
-from rest_framework_simplejwt.serializers import \
-    TokenObtainPairSerializer as BaseTokenObtainPairSerializer
+from rest_framework_simplejwt.serializers import (
+    TokenObtainPairSerializer as BaseTokenObtainPairSerializer)
 
-from foodgram.models import (Favourite, Ingredient, IngredientInRecipe, Recipe,
-                             ShoppingCart, Tag)
+from foodgram.models import (Favourite,
+                             Ingredient,
+                             IngredientInRecipe,
+                             Recipe,
+                             ShoppingCart,
+                             Tag)
 from user.models import Follower, User
 
 
@@ -96,8 +100,12 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
     image = Base64ImageField()
 
     def create(self, validated_data):
-        ingredients = validated_data.pop('ingredientinrecipe_set')
+        ingredients = []
+        if 'ingredientinrecipe_set' in validated_data:
+            ingredients = validated_data.pop('ingredientinrecipe_set')
+
         recipe = super().create(validated_data)
+
         for ingredient in ingredients:
             IngredientInRecipe.objects.get_or_create(
                 ingredient_id=ingredient['ingredient']['id'],
@@ -106,14 +114,21 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
         return recipe
 
-    def update(self, instance, validated_data):
-        ingredients = validated_data.pop('ingredientinrecipe_set')
-        recipe = super().create(validated_data)
-        for ingredient in ingredients:
-            IngredientInRecipe.objects.get_or_create(
-                ingredient_id=ingredient['ingredient']['id'],
-                amount=ingredient['amount'],
-                recipe=recipe)
+    def update(self, recipe, validated_data):
+        ingredients = []
+        if 'ingredientinrecipe_set' in validated_data:
+            ingredients = validated_data.pop('ingredientinrecipe_set')
+
+        recipe = super().update(recipe, validated_data)
+
+        if len(ingredients) > 0:
+            IngredientInRecipe.objects.filter(recipe=recipe).delete()
+
+            for ingredient in ingredients:
+                IngredientInRecipe.objects.get_or_create(
+                    ingredient_id=ingredient['ingredient']['id'],
+                    amount=ingredient['amount'],
+                    recipe=recipe)
 
         return recipe
 

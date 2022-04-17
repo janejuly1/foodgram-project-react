@@ -9,12 +9,20 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from foodgram.models import *
-from user.models import *
 from user.permissions import IsAdminOrReadOnly, IsAuthorOrReadOnlyPermission
-
 from .filters import IngredientFilter, RecipeFilter
-from .serializers import *
+from foodgram.models import Tag, Recipe, ShoppingCart, Favourite, Ingredient
+from user.models import User, Follower
+
+from .serializers import (UserSerializer,
+                          RegistrationSerializer,
+                          TagSerializer,
+                          RecipeReadSerializer,
+                          RecipeWriteSerializer,
+                          RecipeMinifiedSerializer,
+                          AuthorWithRecipesSerializer,
+                          IngredientSerializer,
+                          ChangePasswordSerializer)
 
 
 class UserViewSet(mixins.RetrieveModelMixin,
