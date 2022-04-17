@@ -1,6 +1,4 @@
-import csv
-
-from django.http import Http404
+from django.http import Http404, StreamingHttpResponse
 from django_filters import rest_framework as filters
 from rest_framework import mixins, status, views, viewsets
 from rest_framework.decorators import action
@@ -123,7 +121,7 @@ class ShoppingCartView(views.APIView):
         ingredients = {}
         for recipe in Recipe.objects.filter(
                 shopping_cart__user=request.user).all():
-            for ingredient in recipe.ingredients.all():
+            for ingredient in recipe.ingredientinrecipe_set.all():
                 ingr_id = ingredient.ingredient.id
                 if ingr_id not in ingredients:
                     ingredients[ingr_id] = [ingredient.ingredient,
@@ -131,17 +129,18 @@ class ShoppingCartView(views.APIView):
                 else:
                     ingredients[ingr_id][1] += ingredient.amount
 
-        response = Response(content_type='text/plain; charset=utf8')
-        response['Content-Disposition'] = \
-            'attachment; filename="shopping list.txt"'
-
-        writer = csv.writer(response)
+        rows = []
         for ingredient in ingredients.values():
-            writer.writerow(["{} {} {}".format
-                             (ingredient[0].name,
-                              ingredient[0].unit,
-                              ingredient[1])])
+            rows.append("{} {} {}".format
+                        (ingredient[0].name,
+                         ingredient[0].unit,
+                         ingredient[1]))
 
+        response = StreamingHttpResponse(
+            rows,
+            content_type='text/plain; charset=utf8')
+        response['Content-Disposition'] = ('attachment; '
+                                           'filename="shopping list.txt"')
         return response
 
     def post(self, request, id):
