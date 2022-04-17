@@ -135,12 +135,10 @@ class AuthorWithRecipesSerializer(UserSerializer):
             if 'recipes_limit' in request.GET:
                 limit = int(request.GET['recipes_limit'])
 
-        recipes = []
-        for recipe in user.recipes.all()[:limit]:
-            serializer = RecipeMinifiedSerializer(recipe)
-            recipes.append(serializer.data)
 
-        return recipes
+        return RecipeMinifiedSerializer(
+            user.recipes.all()[:limit],
+            many=True).data
 
     def _recipes_count(self, user):
         return user.recipes.count()
