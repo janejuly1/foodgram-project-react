@@ -2,11 +2,13 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
-from rest_framework_simplejwt.serializers import \
-    TokenObtainPairSerializer as BaseTokenObtainPairSerializer
+from rest_framework_simplejwt.serializers import (
+    TokenObtainPairSerializer as BaseTokenObtainPairSerializer)
 
 from foodgram.models import Ingredient, IngredientInRecipe, Recipe, Tag
 from user.models import User
+
+from .utils import get_user_from_serializer_context
 
 
 class TokenObtainPairSerializer(BaseTokenObtainPairSerializer):
@@ -73,14 +75,6 @@ class RegistrationSerializer(serializers.Serializer):
         return super().validate(attrs)
 
 
-class CustomField(serializers.Field):
-    def to_representation(self, value):
-        return value
-
-    def to_internal_value(self, data):
-        return {self.field_name: data}
-
-
 class IngredientInRecipeWriteSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='ingredient.id')
 
@@ -96,6 +90,13 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         source="ingredientinrecipe_set", many=True)
     image = Base64ImageField()
 
+    def crate_ingredient_in_recipe(self, ingredients, recipe):
+        for ingredient in ingredients:
+            IngredientInRecipe.objects.get_or_create(
+                ingredient_id=ingredient['ingredient']['id'],
+                amount=ingredient['amount'],
+                recipe=recipe)
+
     def create(self, validated_data):
         ingredients = []
         if 'ingredientinrecipe_set' in validated_data:
@@ -103,11 +104,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
         recipe = super().create(validated_data)
 
-        for ingredient in ingredients:
-            IngredientInRecipe.objects.get_or_create(
-                ingredient_id=ingredient['ingredient']['id'],
-                amount=ingredient['amount'],
-                recipe=recipe)
+        self.crate_ingredient_in_recipe(ingredients, recipe)
 
         return recipe
 
@@ -121,11 +118,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         if len(ingredients) > 0:
             IngredientInRecipe.objects.filter(recipe=recipe).delete()
 
-            for ingredient in ingredients:
-                IngredientInRecipe.objects.get_or_create(
-                    ingredient_id=ingredient['ingredient']['id'],
-                    amount=ingredient['amount'],
-                    recipe=recipe)
+            self.crate_ingredient_in_recipe(ingredients, recipe)
 
         return recipe
 
@@ -218,12 +211,3 @@ class IngredientSerializer(serializers.ModelSerializer):
 class ChangePasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField()
     current_password = serializers.CharField()
-
-
-def get_user_from_serializer_context(serializer):
-    if 'request' in serializer.context:
-        request = serializer.context['request']
-        if hasattr(request, 'user'):
-            return request.user
-
-    return None

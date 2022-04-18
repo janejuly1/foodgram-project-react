@@ -17,7 +17,7 @@ class RecipeAdmin(admin.ModelAdmin):
 
     def tags_name(self, obj):
         tags_name = []
-        for tag in obj.tags.all():
+        for tag in obj.tags.values('name').all():
             tags_name.append(tag.name)
 
         return ', '.join(tags_name)

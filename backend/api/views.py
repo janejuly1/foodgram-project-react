@@ -1,3 +1,4 @@
+from django.db.models import Sum
 from django.http import Http404, StreamingHttpResponse
 from django_filters import rest_framework as filters
 from rest_framework import mixins, status, views, viewsets
@@ -7,10 +8,10 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from foodgram.models import Favourite, Ingredient, Recipe, ShoppingCart, Tag
+from foodgram.models import (Favourite, Ingredient, IngredientInRecipe,
+                             Recipe, ShoppingCart, Tag)
 from user.models import Follower, User
 from user.permissions import IsAdminOrReadOnly, IsAuthorOrReadOnlyPermission
-
 from .filters import IngredientFilter, RecipeFilter
 from .serializers import (AuthorWithRecipesSerializer,
                           ChangePasswordSerializer, IngredientSerializer,
@@ -114,34 +115,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user)
 
 
-class ShoppingCartView(views.APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        ingredients = {}
-        for recipe in Recipe.objects.filter(
-                shopping_cart__user=request.user).all():
-            for ingredient in recipe.ingredientinrecipe_set.all():
-                ingr_id = ingredient.ingredient.id
-                if ingr_id not in ingredients:
-                    ingredients[ingr_id] = [ingredient.ingredient,
-                                            ingredient.amount]
-                else:
-                    ingredients[ingr_id][1] += ingredient.amount
-
-        rows = []
-        for ingredient in ingredients.values():
-            rows.append("{} {} {}".format
-                        (ingredient[0].name,
-                         ingredient[0].unit,
-                         ingredient[1]))
-
-        response = StreamingHttpResponse(
-            rows,
-            content_type='text/plain; charset=utf8')
-        response['Content-Disposition'] = ('attachment; '
-                                           'filename="shopping list.txt"')
-        return response
+class FavoriteOrShoppingCartManagerMixin():
+    model = None
 
     def post(self, request, id):
         try:
@@ -150,41 +125,7 @@ class ShoppingCartView(views.APIView):
             return Response({"error": "Рецепт не найден"},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        _, created = ShoppingCart.objects.get_or_create(
-            user=request.user, recipe=recipe)
-        if not created:
-            return Response({"error": "Рецепт уже в списке покупок"},
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        serializer = RecipeMinifiedSerializer(recipe)
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    def delete(self, request, id):
-        try:
-            recipe = get_object_or_404(Recipe, id=id)
-            recipe_in_cart = get_object_or_404(
-                ShoppingCart, user=request.user, recipe=recipe)
-        except Http404:
-            return Response({"error": "Рецепт не найден"},
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        ShoppingCart.delete(recipe_in_cart)
-
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class FavoriteView(views.APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, id):
-        try:
-            recipe = get_object_or_404(Recipe, id=id)
-        except Http404:
-            return Response({"error": "Рецепт не найден"},
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        _, created = Favourite.objects.get_or_create(
+        _, created = self.model.objects.get_or_create(
             user=request.user, recipe=recipe)
         if not created:
             return Response({"error": "Рецепт уже в списке избранного"},
@@ -198,14 +139,45 @@ class FavoriteView(views.APIView):
         try:
             recipe = get_object_or_404(Recipe, id=id)
             recipe_in_fav = get_object_or_404(
-                Favourite, user=request.user, recipe=recipe)
+                self.model, user=request.user, recipe=recipe)
         except Http404:
             return Response({"error": "Рецепт не найден"},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        Favourite.delete(recipe_in_fav)
+        self.model.delete(recipe_in_fav)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ShoppingCartView(views.APIView, FavoriteOrShoppingCartManagerMixin):
+    permission_classes = [IsAuthenticated]
+    model = ShoppingCart
+
+    def get(self, request):
+        user = request.user
+        recipes = user.shopping_cart.values('recipe').all()
+        ingredients = (Ingredient.objects.
+                       filter(recipe__in=recipes).
+                       annotate(amount=Sum('ingredientinrecipe__amount')))
+
+        rows = []
+        for ingredient in ingredients:
+            rows.append("{} {} {}\n".format
+                        (ingredient.name,
+                         ingredient.amount,
+                         ingredient.unit))
+
+        response = StreamingHttpResponse(
+            rows,
+            content_type='text/plain; charset=utf8')
+        response['Content-Disposition'] = ('attachment; '
+                                           'filename="shopping list.txt"')
+        return response
+
+
+class FavoriteView(views.APIView, FavoriteOrShoppingCartManagerMixin):
+    permission_classes = [IsAuthenticated]
+    model = Favourite
 
 
 class SubscriptionView(views.APIView):
