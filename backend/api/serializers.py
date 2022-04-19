@@ -1,7 +1,7 @@
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from rest_framework.validators import UniqueValidator
+from rest_framework.validators import UniqueValidator, UniqueTogetherValidator
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer as BaseTokenObtainPairSerializer)
 
@@ -90,7 +90,47 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         source="ingredientinrecipe_set", many=True)
     image = Base64ImageField()
 
-    def crate_ingredient_in_recipe(self, ingredients, recipe):
+    def validate_tags(self, data):
+        if not data:
+            raise ValidationError('Добавьте хотя бы один тэг')
+
+        if self.instance:
+            for tag in data:
+                if self.instance.tags.filter(tag=tag).exists():
+                    raise ValidationError('Такой тэг уже существует')
+
+        return data
+
+    def validate_ingredients(self, data):
+        if not data:
+            raise ValidationError('Добавьте хотя бы один ингредиент')
+
+        ids = []
+        for ingredient in data:
+            if ingredient['amount'] <= 0:
+                raise ValidationError('Количество должно быть больше 0')
+
+            if ingredient['ingredient']['id'] in ids:
+                raise ValidationError('Вы пытаетесь добавить ингредиент '
+                                      'больше одного раза')
+
+            if (self.instance and
+                    self.instance.ingredients.filter(
+                        pk=ingredient['ingredient']['id']).exists()):
+                raise ValidationError('Такой ингредиент уже добавлен')
+
+            ids.append(ingredient['ingredient']['id'])
+
+        return data
+
+    def validate_cooking_time(self, data):
+        if data < 1:
+            raise ValidationError(
+                'Время приготовления должно быть больше 1'
+            )
+        return data
+
+    def create_ingredient_in_recipe(self, ingredients, recipe):
         for ingredient in ingredients:
             IngredientInRecipe.objects.get_or_create(
                 ingredient_id=ingredient['ingredient']['id'],
@@ -104,7 +144,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
         recipe = super().create(validated_data)
 
-        self.crate_ingredient_in_recipe(ingredients, recipe)
+        self.create_ingredient_in_recipe(ingredients, recipe)
 
         return recipe
 
@@ -118,7 +158,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         if len(ingredients) > 0:
             IngredientInRecipe.objects.filter(recipe=recipe).delete()
 
-            self.crate_ingredient_in_recipe(ingredients, recipe)
+            self.create_ingredient_in_recipe(ingredients, recipe)
 
         return recipe
 
