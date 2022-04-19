@@ -24,13 +24,14 @@ class Tag(models.Model):
 
 
 class Ingredient(models.Model):
-    name = models.CharField(max_length=255, verbose_name='Название ингредиента')
-    unit = models.CharField(max_length=100, verbose_name='Единица измерения')
+    name = models.CharField(max_length=255,
+                            verbose_name='Название ингредиента')
+    unit = models.CharField(max_length=100,
+                            verbose_name='Единица измерения')
 
     class Meta:
         verbose_name = 'Ингридиент'
         verbose_name_plural = 'Ингридиенты'
-
 
     def __str__(self):
         return self.name

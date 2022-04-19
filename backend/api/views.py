@@ -8,10 +8,10 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from foodgram.models import (Favourite, Ingredient, IngredientInRecipe,
-                             Recipe, ShoppingCart, Tag)
+from foodgram.models import Favourite, Ingredient, Recipe, ShoppingCart, Tag
 from user.models import Follower, User
 from user.permissions import IsAdminOrReadOnly, IsAuthorOrReadOnlyPermission
+
 from .filters import IngredientFilter, RecipeFilter
 from .serializers import (AuthorWithRecipesSerializer,
                           ChangePasswordSerializer, IngredientSerializer,
