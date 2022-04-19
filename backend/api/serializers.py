@@ -126,6 +126,9 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         exclude = ['author']
         model = Recipe
 
+    def to_representation(self, instance):
+        return RecipeReadSerializer(instance, context=self.context).data
+
 
 class AuthorWithRecipesSerializer(UserSerializer):
     DEFAULT_RECIPES_LIMIT = 3
