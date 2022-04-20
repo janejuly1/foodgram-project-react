@@ -11,7 +11,6 @@ from rest_framework.response import Response
 from foodgram.models import Favourite, Ingredient, Recipe, ShoppingCart, Tag
 from user.models import Follower, User
 from user.permissions import IsAdminOrReadOnly, IsAuthorOrReadOnlyPermission
-
 from .filters import IngredientFilter, RecipeFilter
 from .serializers import (AuthorWithRecipesSerializer,
                           ChangePasswordSerializer, IngredientSerializer,
@@ -84,7 +83,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user)
 
 
-class FavoriteOrShoppingCartManagerMixin():
+class FavoriteOrShoppingCartManagerMixin:
     model = None
 
     def post(self, request, id):
@@ -127,14 +126,15 @@ class ShoppingCartView(views.APIView, FavoriteOrShoppingCartManagerMixin):
         recipes = user.shopping_cart.values('recipe').all()
         ingredients = (Ingredient.objects.
                        filter(recipe__in=recipes).
+                       values('name', 'unit').
                        annotate(amount=Sum('ingredientinrecipe__amount')))
 
         rows = []
         for ingredient in ingredients:
             rows.append("{} {} {}\n".format
-                        (ingredient.name,
-                         ingredient.amount,
-                         ingredient.unit))
+                        (ingredient['name'],
+                         ingredient['amount'],
+                         ingredient['unit']))
 
         response = StreamingHttpResponse(
             rows,
