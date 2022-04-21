@@ -4,7 +4,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .views import (ChangePasswordView, FavoriteView, IngredientsViewSet,
                     RecipeViewSet, ShoppingCartView, SubscriptionView,
-                    TagViewSet, UserViewSet)
+                    TagViewSet, UserViewSet, SubscriptionsViewSet)
 
 app_name = 'api'
 
@@ -22,7 +22,7 @@ urlpatterns = [
     ),
     path(
         r'users/subscriptions/',
-        SubscriptionView.as_view(),
+        SubscriptionsViewSet.as_view({'get': 'list'}),
         name='subscriptions'
     ),
     path(

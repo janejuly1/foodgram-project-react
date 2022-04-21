@@ -53,16 +53,12 @@ class UserViewSet(mixins.RetrieveModelMixin,
         return Response(user_serializer.data, status=status.HTTP_200_OK)
 
 
-class TagViewSet(viewsets.ModelViewSet):
+class TagViewSet(mixins.RetrieveModelMixin, mixins.ListModelMixin,
+                 viewsets.GenericViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = (IsAdminOrReadOnly,)
-
-    def retrieve(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-    def update(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    permission_classes = [AllowAny]
+    pagination_class = None
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -149,11 +145,18 @@ class FavoriteView(views.APIView, FavoriteOrShoppingCartManagerMixin):
     model = Favourite
 
 
+class SubscriptionsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    serializer_class = AuthorWithRecipesSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = LimitOffsetPagination
+
+    def get_queryset(self):
+        return User.objects.filter(
+            pk__in=self.request.user.follower.values('author').all())
+
+
 class SubscriptionView(views.APIView):
     permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def post(self, request, user_id):
         author = get_object_or_404(User, id=user_id)
