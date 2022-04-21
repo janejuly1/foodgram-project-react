@@ -15,9 +15,8 @@ class TokenObtainPairSerializer(BaseTokenObtainPairSerializer):
 
     def validate(self, attrs):
         data = super().validate(attrs)
-        data.pop('refresh')
 
-        return data
+        return {'auth_token': data.pop('access')}
 
 
 class UserSerializer(serializers.ModelSerializer):
