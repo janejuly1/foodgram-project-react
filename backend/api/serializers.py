@@ -92,11 +92,6 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         if not data:
             raise ValidationError('Добавьте хотя бы один тэг')
 
-        if self.instance:
-            for tag in data:
-                if self.instance.tags.filter(tag=tag).exists():
-                    raise ValidationError('Такой тэг уже существует')
-
         return data
 
     def validate_ingredients(self, data):
@@ -111,11 +106,6 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             if ingredient['ingredient']['id'] in ids:
                 raise ValidationError('Вы пытаетесь добавить ингредиент '
                                       'больше одного раза')
-
-            if (self.instance and
-                    self.instance.ingredients.filter(
-                        pk=ingredient['ingredient']['id']).exists()):
-                raise ValidationError('Такой ингредиент уже добавлен')
 
             ids.append(ingredient['ingredient']['id'])
 
@@ -217,6 +207,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     is_favorited = serializers.SerializerMethodField('_is_favorited')
     is_in_shopping_cart = serializers.SerializerMethodField(
         '_is_in_shopping_cart')
+    author = UserSerializer()
 
     def _is_favorited(self, recipe):
         current_user = get_user_from_serializer_context(self)

@@ -183,6 +183,7 @@ class IngredientsViewSet(mixins.RetrieveModelMixin,
     serializer_class = IngredientSerializer
     filter_backends = (filters.DjangoFilterBackend,)
     filterset_class = IngredientFilter
+    pagination_class = None
 
 
 class RegistrationView(views.APIView):
