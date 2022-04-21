@@ -19,7 +19,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'rest_framework_simplejwt',
+    'rest_framework.authtoken',
     'user.apps.UserConfig',
     'foodgram.apps.FoodgramConfig',
     'api.apps.ApiConfig',
@@ -102,23 +102,14 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
     ],
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend'
     ],
-    'DEFAULT_FILTER_BACKENDS': (
-        'django_filters.rest_framework.DjangoFilterBackend',
-    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 6
 }
 
 AUTH_USER_MODEL = 'user.User'
-
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5000),
-    'AUTH_HEADER_TYPES': ('Token',),
-    'TOKEN_OBTAIN_SERIALIZER': 'api.serializers.TokenObtainPairSerializer',
-}
-
-AUTHENTICATION_BACKENDS = ['api.backends.AuthBackend',
-                           'django.contrib.auth.backends.ModelBackend']

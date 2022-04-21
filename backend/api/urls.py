@@ -1,10 +1,10 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .views import (ChangePasswordView, FavoriteView, IngredientsViewSet,
                     RecipeViewSet, ShoppingCartView, SubscriptionsViewSet,
-                    SubscriptionView, TagViewSet, UserViewSet)
+                    SubscriptionView, TagViewSet, TokenDeleteView,
+                    TokenObtainView, UserViewSet)
 
 app_name = 'api'
 
@@ -47,8 +47,13 @@ urlpatterns = [
     ),
     path(
         r'auth/token/login/',
-        TokenObtainPairView.as_view(),
-        name='token_obtain_pair'
+        TokenObtainView.as_view(),
+        name='token_obtain'
+    ),
+    path(
+        r'auth/token/logout/',
+        TokenDeleteView.as_view(),
+        name='token_delete'
     ),
     path('', include(router.urls)),
 ]

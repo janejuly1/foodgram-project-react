@@ -2,7 +2,9 @@ from django.db.models import Sum
 from django.http import Http404, StreamingHttpResponse
 from django_filters import rest_framework as filters
 from rest_framework import mixins, status, views, viewsets
+from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -13,10 +15,47 @@ from .serializers import (AuthorWithRecipesSerializer,
                           ChangePasswordSerializer, IngredientSerializer,
                           RecipeMinifiedSerializer, RecipeReadSerializer,
                           RecipeWriteSerializer, RegistrationSerializer,
-                          TagSerializer, UserSerializer)
+                          TagSerializer, TokenObtainSerializer,
+                          TokenSerializer, UserSerializer)
 from foodgram.models import Favourite, Ingredient, Recipe, ShoppingCart, Tag
 from user.models import Follower, User
 from user.permissions import IsAuthorOrReadOnlyPermission
+
+
+class TokenObtainView(views.APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        token_obtain_serializer = TokenObtainSerializer(data=request.data)
+        token_obtain_serializer.is_valid(raise_exception=True)
+
+        validated_data = token_obtain_serializer.validated_data
+        user = User.objects.filter(email=validated_data['email']).get()
+        if not user:
+            raise ValidationError('пользователь не найден')
+
+        if not user.check_password(validated_data['password']):
+            raise ValidationError('пользователь не найден')
+
+        token, _ = Token.objects.get_or_create(user=user)
+
+        return Response(
+            data=TokenSerializer({'auth_token': token.key}).data,
+            status=status.HTTP_201_CREATED)
+
+
+class TokenDeleteView(views.APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        if not request.user or request.user.is_anonymous or not request.auth:
+            return Response(
+                data={'detail': 'пользователь не авторизован'},
+                status=status.HTTP_401_UNAUTHORIZED)
+
+        request.auth.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class UserViewSet(mixins.RetrieveModelMixin,

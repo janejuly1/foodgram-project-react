@@ -2,21 +2,19 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
-from rest_framework_simplejwt.serializers import (
-    TokenObtainPairSerializer as BaseTokenObtainPairSerializer)
 
 from .utils import get_user_from_serializer_context
 from foodgram.models import Ingredient, IngredientInRecipe, Recipe, Tag
 from user.models import User
 
 
-class TokenObtainPairSerializer(BaseTokenObtainPairSerializer):
-    username_field = 'email'
+class TokenObtainSerializer(serializers.Serializer):
+    email = serializers.CharField(max_length=254)
+    password = serializers.CharField(max_length=150)
 
-    def validate(self, attrs):
-        data = super().validate(attrs)
 
-        return {'auth_token': data.pop('access')}
+class TokenSerializer(serializers.Serializer):
+    auth_token = serializers.CharField(max_length=254)
 
 
 class UserSerializer(serializers.ModelSerializer):
