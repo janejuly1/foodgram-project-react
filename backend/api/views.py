@@ -16,7 +16,7 @@ from .serializers import (AuthorWithRecipesSerializer,
                           TagSerializer, UserSerializer)
 from foodgram.models import Favourite, Ingredient, Recipe, ShoppingCart, Tag
 from user.models import Follower, User
-from user.permissions import IsAdminOrReadOnly, IsAuthorOrReadOnlyPermission
+from user.permissions import IsAuthorOrReadOnlyPermission
 
 
 class UserViewSet(mixins.RetrieveModelMixin,
@@ -64,9 +64,9 @@ class TagViewSet(mixins.RetrieveModelMixin, mixins.ListModelMixin,
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeReadSerializer
-    permission_classes = (IsAuthorOrReadOnlyPermission,)
+    permission_classes = [IsAuthorOrReadOnlyPermission]
     pagination_class = LimitOffsetPagination
-    filter_backends = (filters.DjangoFilterBackend,)
+    filter_backends = [filters.DjangoFilterBackend]
     filterset_class = RecipeFilter
 
     def get_serializer_class(self):

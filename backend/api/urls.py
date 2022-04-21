@@ -3,8 +3,8 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .views import (ChangePasswordView, FavoriteView, IngredientsViewSet,
-                    RecipeViewSet, ShoppingCartView, SubscriptionView,
-                    TagViewSet, UserViewSet, SubscriptionsViewSet)
+                    RecipeViewSet, ShoppingCartView, SubscriptionsViewSet,
+                    SubscriptionView, TagViewSet, UserViewSet)
 
 app_name = 'api'
 
