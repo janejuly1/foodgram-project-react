@@ -5,9 +5,9 @@ from rest_framework.validators import UniqueValidator
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer as BaseTokenObtainPairSerializer)
 
+from .utils import get_user_from_serializer_context
 from foodgram.models import Ingredient, IngredientInRecipe, Recipe, Tag
 from user.models import User
-from .utils import get_user_from_serializer_context
 
 
 class TokenObtainPairSerializer(BaseTokenObtainPairSerializer):
