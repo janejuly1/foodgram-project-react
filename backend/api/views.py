@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Sum
 from django.http import Http404, StreamingHttpResponse
 from django_filters import rest_framework as filters
@@ -30,8 +31,9 @@ class TokenObtainView(views.APIView):
         token_obtain_serializer.is_valid(raise_exception=True)
 
         validated_data = token_obtain_serializer.validated_data
-        user = User.objects.filter(email=validated_data['email']).get()
-        if not user:
+        try:
+            user = User.objects.filter(email=validated_data['email']).get()
+        except ObjectDoesNotExist:
             raise ValidationError('пользователь не найден')
 
         if not user.check_password(validated_data['password']):
