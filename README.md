@@ -1,4 +1,4 @@
-![build status](https://github.com/janejuly1/yamdb_final/actions/workflows/yamdb_workflow.yml/badge.svg)
+![build status](https://github.com/janejuly1/foodgram-project-react/actions/workflows/foodgram-project.yml/badge.svg)
 # Foodgram
 Сборник вкусных рецептов для любого повода
 
