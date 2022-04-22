@@ -22,6 +22,8 @@ services:
     image: janejuly1/foodgram_frontend
     volumes:
       - frontend:/app/build/
+    depends_on:
+      - django
 
   nginx:
     image: nginx:1.19.3
@@ -34,7 +36,6 @@ services:
       - static_volume:/var/html/static/
       - media_volume:/var/html/media/
     depends_on:
-      - django
       - frontend
 
 volumes:
