@@ -5,7 +5,7 @@ from rest_framework.validators import UniqueValidator
 
 from .utils import get_user_from_serializer_context
 from foodgram.models import Ingredient, IngredientInRecipe, Recipe, Tag
-from user.models import User, Follower
+from user.models import Follower, User
 
 
 class TokenObtainSerializer(serializers.Serializer):
