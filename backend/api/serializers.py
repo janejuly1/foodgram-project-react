@@ -5,7 +5,7 @@ from rest_framework.validators import UniqueValidator
 
 from .utils import get_user_from_serializer_context
 from foodgram.models import Ingredient, IngredientInRecipe, Recipe, Tag
-from user.models import User
+from user.models import User, Follower
 
 
 class TokenObtainSerializer(serializers.Serializer):
@@ -31,8 +31,7 @@ class UserSerializer(serializers.ModelSerializer):
         current_user = get_user_from_serializer_context(self)
         if (current_user is not None
                 and not current_user.is_anonymous
-                and current_user.following.filter(
-                    author=user).exists()):
+                and Follower.objects.filter(user=current_user, author=user)):
             return True
 
         return False

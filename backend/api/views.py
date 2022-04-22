@@ -7,7 +7,6 @@ from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
-from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
@@ -66,7 +65,6 @@ class UserViewSet(mixins.RetrieveModelMixin,
                   viewsets.GenericViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    pagination_class = LimitOffsetPagination
     permission_classes = [AllowAny]
 
     @action(detail=False, url_path='me')
@@ -106,7 +104,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeReadSerializer
     permission_classes = [IsAuthorOrReadOnlyPermission]
-    pagination_class = LimitOffsetPagination
     filter_backends = [filters.DjangoFilterBackend]
     filterset_class = RecipeFilter
 
@@ -189,7 +186,6 @@ class FavoriteView(views.APIView, FavoriteOrShoppingCartManagerMixin):
 class SubscriptionsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = AuthorWithRecipesSerializer
     permission_classes = [IsAuthenticated]
-    pagination_class = LimitOffsetPagination
 
     def get_queryset(self):
         return User.objects.filter(
@@ -215,6 +211,23 @@ class SubscriptionView(views.APIView):
             author, context={'request': self.request})
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, user_id):
+        author = get_object_or_404(User, id=user_id)
+        if request.user == author:
+            return Response({"errors": "Нельзя отписаться от самого себя"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            follower = Follower.objects.get(user=request.user, author=author)
+        except ObjectDoesNotExist:
+            return Response(
+                {"errors": "Вы не были подписаны на этого пользователя"},
+                status=status.HTTP_400_BAD_REQUEST)
+
+        follower.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class IngredientsViewSet(mixins.RetrieveModelMixin,
